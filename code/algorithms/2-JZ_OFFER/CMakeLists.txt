@@ -8,5 +8,8 @@ set(src_list ./)
 #aux_source_directory(2-singleton src_list)
 #aux_source_directory(3-duplicate_array src_list)
 #aux_source_directory(4-matrix_array_find src_list)
+#aux_source_directory(5-string_replace_space src_list)
+#aux_source_directory(6-linklist_print_from_end)
 
-add_executable(JZ_OFFER 4-matrix_array_find/main.cpp ${src_list})
+# 要调试那个，放那个的main.cpp
+add_executable(JZ_OFFER 6-linklist_print_from_end/main.cpp ${src_list})
