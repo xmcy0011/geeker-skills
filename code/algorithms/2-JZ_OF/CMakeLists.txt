@@ -12,4 +12,5 @@ set(src_list ./)
 #aux_source_directory(6-linklist_print_from_end)
 
 # 要调试那个，放那个的main.cpp
-add_executable(JZ_OFFER 6-linklist_print_from_end/main.cpp ${src_list})
+#add_executable(JZ_OFFER 6-linklist_print_from_end/main.cpp ${src_list})
+add_executable(JZ_OFFER 7-btree_recreate/main.cpp ${src_list})
