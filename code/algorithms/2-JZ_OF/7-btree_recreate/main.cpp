@@ -3,7 +3,7 @@
   *
   * 题目：
   * 输入某二叉树的前序遍历和中序遍历的结果，请重建该二叉树。假设输入的前序遍历和中旬遍历的结果中
-  * 都不含重复的数字。例如，输入前序遍历序列{1,2,4,7,35,6,8}和中序遍历序列{4,7,2,1,5,3,8,6}，
+  * 都不含重复的数字。例如，输入前序遍历序列{1,2,4,7,3,5,6,8}和中序遍历序列{4,7,2,1,5,3,8,6}，
   * 则重建如图2.6所示的二叉树并输出它的头节点。二叉树节点的定义如下：
 struct BinaryTreeNode {
     int value_;
@@ -33,10 +33,12 @@ digraph G {
 #include <cstdlib>
 #include <vector>
 
+#include <exception>
+
 using namespace std;
 
 struct BinaryTreeNode {
-    char value_;
+    int value_;
     BinaryTreeNode *left_;
     BinaryTreeNode *right_;
 };
@@ -108,17 +110,10 @@ BinaryTreeNode *build_tree() {
     return node;
 }
 
-//BinaryTreeNode *build_tree(const vector<int> &q, const vector<int> &h) {
-//
-//}
-
 void printNode(const BinaryTreeNode *root, ostringstream &buffer) {
     if (root == nullptr) {
         return;
     }
-
-    printNode(root->left_, buffer);
-    printNode(root->right_, buffer);
 
     if (root->left_ != nullptr) {
         buffer << root->value_ << " -> " << root->left_->value_ << ";\n";
@@ -130,6 +125,9 @@ void printNode(const BinaryTreeNode *root, ostringstream &buffer) {
     } else {
         buffer << root->value_ << " -> nil;\n";
     }
+
+    printNode(root->left_, buffer);
+    printNode(root->right_, buffer);
 }
 
 void printIntoGraphviz(const BinaryTreeNode *root, ostringstream &buffer) {
@@ -160,13 +158,140 @@ void test_build_tree() {
     saveToGraphviz(buffer);
 }
 
+BinaryTreeNode *
+build_child(int pre[], int start_pre, int end_pre, int in[], int start_in, int end_in) {
+    int value = pre[start_pre];
+
+    auto *root = new BinaryTreeNode();
+    root->value_ = static_cast<char>(value);
+    root->left_ = root->right_ = nullptr;
+
+    if (start_pre == end_pre) {
+        if (start_in == end_in && pre[start_pre] == in[start_in]) {
+            return root;
+        } else {
+            throw std::exception(/*"invalid input"*/);
+        }
+    }
+
+    // 根据前序根节点的值，找到在中序中的位置
+    int root_in = start_in;
+    while (root_in < end_in && in[root_in] != value) {
+        ++root_in;
+    }
+
+    // 退出条件
+    // 下钻
+    // 处理
+    // 返回
+
+    int left_length = root_in - start_in;
+    int left_pre_end = left_length + start_pre;
+    // 有左子树
+    if (left_length > 0) {
+        // 前序，正着找
+        // 中序，从后往前找，因为左根右。
+        root->left_ = build_child(pre, start_pre + 1, left_pre_end, in, start_in, root_in - 1);
+    }
+
+    // 子序列里面又 有右子树
+    if (left_length < end_pre - start_pre) {
+        root->right_ = build_child(pre, left_pre_end + 1, end_pre, in, root_in + 1, end_in);
+    }
+
+    return root;
+}
+
+BinaryTreeNode *re_build_tree(/*const vector<int> &q, const vector<int> &h*/) {
+    // 前序：{1,2,4,7,3, 5,6,8} 中序：{4,7,2,1,5,3,8,6}
+    int pre[] = {1, 2, 4, 7, 3, 5, 6, 8};
+    int in[] = {4, 7, 2, 1, 5, 3, 8, 6};
+
+    int pre_len = sizeof(pre) / sizeof(pre[0]);
+    int in_len = sizeof(in) / sizeof(in[0]);
+
+    return build_child(pre, 0, pre_len - 1, in, 0, in_len - 1);
+}
+
+
+BinaryTreeNode *jz_construct_core(int *start_pre, int *end_pre, int *start_in, int *end_in) {
+    int root_value = start_pre[0]; // 前序的第0个，永远是递归这个节点的根。
+    BinaryTreeNode *node = new BinaryTreeNode();
+    node->value_ = static_cast<char>(root_value);
+    node->left_ = node->right_ = nullptr;
+
+//    if (start_pre == end_pre) {
+//        if (start_in == end_in && *start_pre == *start_in) {
+//            return node;
+//        } else {
+//            throw std::exception(/*"invalid input"*/);
+//        }
+//    }
+
+    // 从中序列里面找到根的位置，则根的左侧为左子树，右侧为右子树
+    int *root_in = start_in;
+    while (root_in < end_in && *root_in != root_value) {
+        ++root_in;
+    }
+
+    if (root_in == end_in && *root_in != root_value) {
+        throw std::exception();
+    }
+
+    // 中序左子树的长度
+    int left_len = root_in - start_in;
+    // 前序左子树的结束位置
+    int *left_pre_end = start_pre + left_len;
+
+    // 大于0，说明有左子树
+    if (left_len > 0) {
+        // 前序（根左右）：开始位置往后移动1位，结束的位置需要动态计算
+        // 中序（左根右）：左根区间里面，根节点在最后面。所以需要从后往前找，则start不变，end--
+        node->left_ = jz_construct_core(start_pre + 1, left_pre_end, start_in, root_in - 1);
+    }
+
+    // 有右子树
+    if (left_len < end_pre - start_pre) {
+        // 前序：右子树的开始就是左子树的最后一个节点+1，结束的位置就是整个链表的结尾
+        // 中序：同样，开始是左子树的最后+1，结束就是整个链表的结尾
+        node->right_ = jz_construct_core(left_pre_end + 1, end_pre, root_in + 1, end_in);
+    }
+
+    return node;
+}
+
+BinaryTreeNode *jz_construct() {
+    int pre[] = {1, 2, 4, 7, 3, 5, 6, 8};
+    int in[] = {4, 7, 2, 1, 5, 3, 8, 6};
+
+    // 第一遍：前序得知1为根节点，中序得知左子树为{4,7,2}，右子树为{5,3,8,6}
+    // 第二遍：对{4,7,2}求左右子树，则前序得知根为{2}，左子树为{4,7}，没有右子树
+    // 第三遍：对{4,7}求左右子树，则前序得知根为{4}，左子树为nil，右子树为{7}
+    // 继续对{5,3,8,6}求左右子树
+    //
+
+    int pre_len = sizeof(pre) / sizeof(pre[0]);
+    int in_len = sizeof(in) / sizeof(in[0]);
+
+    return jz_construct_core(pre, &pre[pre_len - 1], in, &in[in_len - 1]);
+}
+
 int main() {
     // 测试用例1：12300400600、123000600
     // 测试用例2：
     //  输出：A BHFD ECKG
     //  输出：HBDF A EKCG
     //  输入1：ABH00FD000E0CK00G00
-    test_build_tree();
+    //test_build_tree();
 
+    //BinaryTreeNode *root = jz_construct();//re_build_tree();
+
+    BinaryTreeNode *root = re_build_tree();
+
+    // append output string stream
+    ostringstream buffer("", ::ios_base::ate);
+    printIntoGraphviz(root, buffer);
+    printf("%s", buffer.str().c_str());
+    saveToGraphviz(buffer);
     return 0;
 }
