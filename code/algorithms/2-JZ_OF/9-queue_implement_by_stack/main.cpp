@@ -23,6 +23,7 @@ template<typename T>
 class CQueue {
 public:
     CQueue() = default;
+
     ~CQueue() = default;
 
     void append_tail(const T &node);
@@ -60,7 +61,6 @@ T CQueue<T>::delete_head() noexcept(false) {
     stack2_.pop();
     return em;
 }
-
 
 int main() {
     CQueue<int> queue;
