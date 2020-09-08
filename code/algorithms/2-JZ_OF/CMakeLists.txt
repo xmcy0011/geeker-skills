@@ -13,4 +13,6 @@ set(src_list ./)
 
 # 要调试那个，放那个的main.cpp
 #add_executable(JZ_OFFER 6-linklist_print_from_end/main.cpp ${src_list})
-add_executable(JZ_OFFER 7-btree_recreate/main.cpp ${src_list})
+#add_executable(JZ_OFFER 10-fibonacci/main.cpp ${src_list})
+
+add_executable(JZ_OF 11-rotate_array_minium_num/main.cpp)
