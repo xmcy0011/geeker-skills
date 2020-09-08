@@ -7,6 +7,7 @@
 5. =default或者=delete [C++构造函数的default和delete](https://www.cnblogs.com/xiangtingshen/p/11005281.html)
 6. =0，代表纯虚函数 《C++ Primer 第五版 541页》
 7. 函数override关键字解决什么问题 《C++ Primer 第五版 538页》
+8. 三种继承的区别？默认继承是什么
 
 ## 类型转换
 1. explicit 构造函数禁止隐式转换

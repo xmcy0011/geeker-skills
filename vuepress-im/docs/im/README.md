@@ -6,6 +6,41 @@
 
 这期间遇到的问题，也希望一一归纳总结到本教程内，毕竟记性不好 :)
 
+
+# 定位
+
+## 目标读者
+
+本书假设读者具有一定的后端开发经验（2-3年以上为好）。
+
+## 本书目的
+
+- 初步掌握IM后端开发相关的技能。
+  - 单聊如何实现？
+  
+  - 群聊如何实现？
+  
+  - 语音和视频以及文件如何实现？
+  
+  - 协议如何设计才能省流量，又能兼容老版本？
+  
+  - 如何存储消息？
+  
+  - ……等等
+  
+    
+  
+- 掌握Linux下的网络编程技术
+  
+  - select、poll、epoll
+  
+    
+  
+- 掌握Protobuf
+- 百万级用户量IM的架构
+- ……
+
+
 # 联系我
 
 - 坐标：上海
@@ -15,5 +50,6 @@
 
 # 作品
 
-Coffeechat：https://github.com/xmcy0011/CoffeeChat ![Github starts](https://img.shields.io/badge/stars-22-yellowgreen)
+CoffeeChat：https://github.com/xmcy0011/CoffeeChat ![Github starts](https://img.shields.io/badge/stars-22-yellowgreen)
+
 > opensource im with server(go) and client(flutter+swift)
