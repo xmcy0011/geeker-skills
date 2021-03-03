@@ -2,7 +2,7 @@
 ## 类
 1. 构造函数有哪几种？无参、有参、拷贝、赋值、移动
 2. 什么情况下必须得实现构造函数，否则编译器报错？[C++必须要存在非默认构造函数的条件](https://blog.csdn.net/yueyansheng2/article/details/44459313)
-3. 在什么情况下必须实现拷贝构造函数？
+3. 在什么情况下必须实现拷贝构造函数？[什么时候需要定义拷贝构造函数](https://blog.csdn.net/suxinpingtao51/article/details/36890809)
 4. 浅拷贝与深拷贝 [c++ 构造函数详解](https://blog.csdn.net/qq_29339467/article/details/90719951)
 5. =default或者=delete [C++构造函数的default和delete](https://www.cnblogs.com/xiangtingshen/p/11005281.html)
 6. =0，代表纯虚函数 《C++ Primer 第五版 541页》
