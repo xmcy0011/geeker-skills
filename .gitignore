@@ -7,3 +7,7 @@ vuepress-im/docs/im/_book
 code/tcp/base/.idea/
 
 code/tcp/base/cmake-build-debug/
+code/tcp/01-simple-single-thread/client/cmake-build-debug
+code/tcp/01-simple-single-thread/server/cmake-build-debug
+code/tcp/02-simple-multi-thread/client/cmake-build-debug
+code/tcp/02-simple-multi-thread/server/cmake-build-debug
