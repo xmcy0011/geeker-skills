@@ -11,3 +11,4 @@ code/tcp/01-simple-single-thread/client/cmake-build-debug
 code/tcp/01-simple-single-thread/server/cmake-build-debug
 code/tcp/02-simple-multi-thread/client/cmake-build-debug
 code/tcp/02-simple-multi-thread/server/cmake-build-debug
+code/tcp/03-io-multiplexing-select/server/cmake-build-debug

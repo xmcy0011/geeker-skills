@@ -52,6 +52,7 @@ int main() {
         std::cout << "new connect coming,accept..." << std::endl;
         while (true) {
             char buffer[1024] = {};
+            // 没有数据时会阻塞
             ssize_t len = recv(fd, buffer, sizeof(buffer), 0); // wait
             if (len == kSocketError) {
                 std::cout << "recv error:" << errno << std::endl;

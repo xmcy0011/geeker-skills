@@ -2,16 +2,17 @@
 
 #include <cstring>
 #include <cerrno>
-#include <thread>  // thread
+#include <thread>       // thread
 #include <netinet/in.h> // ipv4: PF_INET,sockaddr_in ,v6:PF_INET6,sockaddr_in6
-#include <sys/socket.h> // socket,bind,listen,accept
-#include <unistd.h>     // read,close
-#include <arpa/inet.h> // inet_addr
+#include <sys/socket.h> // socket(),bind(),listen(),accept()
+#include <unistd.h>     // read(),close()
+#include <arpa/inet.h>  // inet_addr()
+#include <fcntl.h>      // fcntl()
 
 const int kSocketError = -1;
 
 /** @fn main
-  * @brief 演示socket的基础调用demo，使用了默认同步I/O阻塞+多线程（也可以通过fork()调用创建子进程）的方式。
+  * @brief 演示socket的基础调用demo，使用了默认同步I/O阻塞+多线程的方式。
   * 优点：即对上一个进行了改进，能同时支持多个连接
   * 缺点：线程启动代价比较大且较占用内存，不过NGINX早期好像是使用了这种方式，实现了高并发，但是现在已经过时，不推荐使用。
   *
@@ -25,12 +26,19 @@ int main() {
     }
     std::cout << "create socket" << std::endl;
 
+    // non-block
+    int ret = ::fcntl(listenFd, F_SETFL, O_NONBLOCK);
+    if (ret == kSocketError) {
+        std::cout << "fcntl error:" << errno << std::endl;
+        return 0;
+    }
+
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8088);
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    int ret = ::bind(listenFd, (sockaddr *) &addr, sizeof(addr));
+    ret = ::bind(listenFd, (sockaddr *) &addr, sizeof(addr));
     if (ret == kSocketError) {
         std::cout << "bind socket error:" << errno << std::endl;
         return 0;
@@ -59,7 +67,6 @@ int main() {
             std::cout << "new connect coming,accept..." << std::endl;
             while (true) {
                 char buffer[1024] = {};
-                // 没有数据时会阻塞
                 ssize_t len = recv(fd, buffer, sizeof(buffer), 0); // wait
                 if (len == kSocketError) {
                     std::cout << "recv error:" << errno << std::endl;
