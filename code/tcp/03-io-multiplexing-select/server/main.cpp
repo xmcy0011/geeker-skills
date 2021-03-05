@@ -9,6 +9,10 @@
 #include <arpa/inet.h>  // inet_addr()
 #include <fcntl.h>      // fcntl()
 
+#include <sys/select.h> // select()
+
+#include <vector>  // vector
+
 const int kSocketError = -1;
 
 /** @fn main
@@ -19,7 +23,17 @@ const int kSocketError = -1;
   * @return
   */
 int main() {
-    int listenFd = ::socket(PF_INET, SOCK_STREAM, 0);
+    int listenFd = 0;
+    int ret = 0;
+    int yesReuseAddr = 1;
+    struct sockaddr_in addr{};
+    std::vector<int> connections; // 已建立的连接
+    struct timeval tv{};                // select超时
+    fd_set readFds;                     // select 可读fd集合
+    int maxFd = 0;                      // select 最大的fd
+    char recvBuffer[1024] = {0};        // 接收缓冲区
+
+    listenFd = ::socket(PF_INET, SOCK_STREAM, 0);
     if (listenFd == kSocketError) {
         std::cout << "create socket error:" << errno << std::endl;
         return 0;
@@ -27,13 +41,18 @@ int main() {
     std::cout << "create socket" << std::endl;
 
     // non-block
-    int ret = ::fcntl(listenFd, F_SETFL, O_NONBLOCK);
+    ret = ::fcntl(listenFd, F_SETFL, O_NONBLOCK);
     if (ret == kSocketError) {
         std::cout << "fcntl error:" << errno << std::endl;
         return 0;
     }
 
-    struct sockaddr_in addr{};
+    // SO_REUSEADDR
+    if (::setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &yesReuseAddr, sizeof(yesReuseAddr)) == kSocketError) {
+        std::cout << "setsockopt error:" << errno << std::endl;
+        return 0;
+    }
+
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8088);
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -52,48 +71,86 @@ int main() {
         return 0;
     }
 
-    // 死循环，永不退出
-    while (true) {
-        struct sockaddr_in peerAddr{};
-        socklen_t sockLen = sizeof(sockaddr_in);
-        // will sleep, until one connection coming
-        int fd = ::accept(listenFd, (sockaddr *) &peerAddr, &sockLen);
-        if (fd == kSocketError) {
-            return 0;
+    for (;;) {
+        tv.tv_sec = 30;
+        tv.tv_usec = 0;
+
+        // select函数会清空各个集合，每次都需要加入
+        FD_ZERO(&readFds);
+        // Listen的socket加入监听
+        FD_SET(listenFd, &readFds);
+        maxFd = listenFd;
+        // 已连接的socket加入监听
+        for (const auto &sockFd : connections) {
+            FD_SET(sockFd, &readFds);
+            if (sockFd > maxFd) {
+                maxFd = sockFd;
+            }
         }
 
-        // 改进：
-        auto proc = [fd, peerAddr]() {
-            std::cout << "new connect coming,accept..." << std::endl;
-            while (true) {
-                char buffer[1024] = {};
-                ssize_t len = recv(fd, buffer, sizeof(buffer), 0); // wait
-                if (len == kSocketError) {
-                    std::cout << "recv error:" << errno << std::endl;
-                    break;
+        ret = ::select(maxFd + 1, &readFds, nullptr, nullptr, &tv);
+        if (ret == -1) {
+            std::cout << "select error:" << errno << std::endl;
+            continue;
+        } else if (ret == 0) {
+            std::cout << "select timeout:" << errno << std::endl;
+            continue;
+        }
 
-                } else if (len == 0) {
+        if (FD_ISSET(listenFd, &readFds)) {
+            int clientFd = ::accept(listenFd, nullptr, nullptr);
+            if (clientFd == kSocketError) {
+                std::cout << "accept error:" << clientFd << std::endl;
+                continue;
+            }
+            std::cout << "new connect coming" << std::endl;
+            connections.push_back(clientFd);
+            if (clientFd > maxFd) { // update
+                std::cout << "update maxSock ,before:" << maxFd << ",now:" << clientFd << std::endl;
+                maxFd = clientFd;
+            }
+            FD_SET(clientFd, &readFds); // 加入到监听列表
+        } else {
+            // select的缺点，每一次都需要o(n)级别的遍历
+            for (auto it = connections.begin(); it != connections.end();) {
+                int sockFd = *it;
+                if (!FD_ISSET(sockFd, &readFds)) { // 没有数据，直接下一个
+                    ++it;
+                    continue;
+                }
+
+                // 获取客户端IP
+                struct sockaddr_in peer{};
+                socklen_t len = sizeof(sockaddr_in);
+                if (::getpeername(sockFd, (sockaddr *) &peer, &len) == kSocketError) {
+                    std::cout << "getpeername error" << errno << std::endl;
+                    ++it;
+                    continue;
+                }
+
+                ret = ::recv(sockFd, recvBuffer, sizeof(recvBuffer), 0);
+                if (ret == 0) { // EOF
+                    std::cout << "client " << sockFd << " close ths connection, " << inet_ntoa(peer.sin_addr) << ":"
+                              << ::ntohs(peer.sin_port) << std::endl;
+                    FD_CLR(sockFd, &readFds);
+                    ::close(sockFd);
+                    it = connections.erase(it);
+
+                } else if (ret == -1) {
                     std::cout << "recv error:" << errno << std::endl;
-                    break;
+                    FD_CLR(sockFd, &readFds);
+                    ::close(sockFd);
+                    it = connections.erase(it);
 
                 } else {
-                    std::cout << "recv" << ::inet_ntoa(peerAddr.sin_addr) << ":" << peerAddr.sin_port
-                              << " " << buffer << ",len=" << len << std::endl;
+                    std::cout << "recv from " << inet_ntoa(peer.sin_addr) << ":" << ::ntohs(peer.sin_port)
+                              << ": " << recvBuffer << ",len=" << ret << std::endl;
                     // echo
-                    len = send(fd, buffer, len, 0);
-                    if (len == kSocketError) {
-                        std::cout << "send error:" << errno << std::endl;
-                        break;
-                    }
+                    ::send(sockFd, recvBuffer, ret, 0);
+                    ++it;
                 }
             }
-            ::close(fd);
-            std::cout << "remote " << ::inet_ntoa(peerAddr.sin_addr) << "close connection" << std::endl;
-        };
-
-        std::thread thread(proc);
-        // 分离线程，主线程结束时继续存在；线程结束后，立马回收资源。
-        thread.detach();
+        }
     }
 
     return 0;
