@@ -29,6 +29,16 @@ void robot(int id) {
     }
     std::cout << id << " connect remote success" << std::endl;
 
+    // recv 5秒超时
+    struct timeval timeout = {5, 0};
+    // send 超时 这样设置
+    //ret = ::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeout, sizeof(timeout));
+    ret = ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
+    if (ret == kSocketError) {
+        std::cout << "setsockopt err" << errno << std::endl;
+        return;
+    }
+
     char buffer[1024] = {0};
     char recvBuffer[1024] = {0};
     for (int i = 0; i < 10; ++i) {
@@ -45,8 +55,8 @@ void robot(int id) {
 
         ret = ::recv(fd, recvBuffer, sizeof(recvBuffer), 0);
         if (ret == kSocketError) {
-            std::cout << "send error:" << errno << std::endl;
-            break;
+            std::cout << "recv error:" << errno << std::endl;
+            continue;
         }
         std::cout << "recv from:" << recvBuffer << std::endl;
     }
@@ -57,7 +67,7 @@ void robot(int id) {
 int main() {
     ::srandom(time(nullptr));
 
-    const int clientNum = 5;
+    const int clientNum = 1;
     for (int i = 0; i < clientNum; ++i) {
         std::thread t(robot, i);
         t.detach();
