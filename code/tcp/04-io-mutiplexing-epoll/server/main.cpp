@@ -93,9 +93,9 @@ void onRead(const int &epFd, const int &fd, const int &listenFd, char recvBuffer
 
     } else {
         std::cout << "recv from " << inet_ntoa(peer.sin_addr) << ":" << ::ntohs(peer.sin_port)
-                  << ": " << recvBuffer << ",len=" << ret << std::endl;
+                  << ": " << std::string(recvBuffer, recvTotalLen) << ",len=" << recvTotalLen << std::endl;
         // echo
-        ::send(fd, recvBuffer, ret, 0);
+        ::send(fd, recvBuffer, recvTotalLen, 0);
     }
 }
 
