@@ -9,6 +9,7 @@
 
 #include <sys/epoll.h>  // epoll
 #include <vector>       // vector
+#include <cstring>
 
 const int kSocketError = -1;
 
@@ -56,7 +57,8 @@ void onRead(const int &epFd, const int &fd, const int &listenFd, char recvBuffer
     struct sockaddr_in peer{};
     socklen_t len = sizeof(sockaddr_in);
     if (::getpeername(fd, (sockaddr *) &peer, &len) == kSocketError) {
-        std::cout << "getpeername error" << errno << std::endl;
+        std::cout << "getpeername error" << strerror(errno) << std::endl;
+        ::close(fd);
         return;
     }
 
@@ -143,6 +145,15 @@ void onClose(const int &epFd, const int &fd) {
     }
 }
 
+bool setNoBlock(const int &fd) {
+    // non-block
+    int ret = ::fcntl(fd, F_SETFL, O_NONBLOCK);
+    if (ret == kSocketError) {
+        std::cout << "fcntl error:" << errno << std::endl;
+    }
+    return ret != kSocketError;
+}
+
 /** @fn main
   * @brief 演示socket的基础调用demo，使用了默认同步I/O阻塞+多线程的方式。
   * 优点：即对上一个进行了改进，能同时支持多个连接
@@ -180,9 +191,7 @@ int main() {
     std::cout << "create socket" << std::endl;
 
     // non-block
-    ret = ::fcntl(listenFd, F_SETFL, O_NONBLOCK);
-    if (ret == kSocketError) {
-        std::cout << "fcntl error:" << errno << std::endl;
+    if (!setNoBlock(listenFd)) {
         return 0;
     }
 
@@ -219,7 +228,7 @@ int main() {
 
     // listen的socket加入到epoll监听列表
     struct epoll_event ev{};
-    ev.events = EPOLLIN;
+    ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = listenFd;
     ret = ::epoll_ctl(epFd, EPOLL_CTL_ADD, listenFd, &ev);
     if (ret == kSocketError) {
@@ -229,7 +238,8 @@ int main() {
 
     struct epoll_event events[maxFiles];
     for (;;) {
-        fdNum = ::epoll_wait(epFd, events, maxFiles, -1);
+        int timeout = 10 * 1000; // actually 200 ms
+        fdNum = ::epoll_wait(epFd, events, maxFiles, timeout);
         if (fdNum == -1) {
             std::cout << "epoll_wait error:" << errno << std::endl;
             continue;

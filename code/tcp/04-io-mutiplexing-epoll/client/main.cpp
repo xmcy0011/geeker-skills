@@ -7,6 +7,7 @@
 #include <arpa/inet.h>  // inet_addr()
 #include <unistd.h>     // close
 #include <functional>
+#include <cstring>
 
 const int kSocketError = -1;
 
@@ -24,7 +25,7 @@ void robot(int id) {
 
     int ret = ::connect(fd, (sockaddr *) &serverIp, sizeof(serverIp));
     if (ret == kSocketError) {
-        std::cout << "connect error:" << errno << std::endl;
+        std::cout << "connect error:" << strerror(errno) << std::endl;
         return;
     }
     std::cout << id << " connect remote success" << std::endl;
