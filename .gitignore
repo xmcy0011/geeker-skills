@@ -4,3 +4,17 @@ code/algorithms/2-JZ_OF/cmake-build-debug
 _book/gitbook
 vuepress-im/docs/im/_book
 vuepress-im/docs/interview/_book
+code/tcp/base/.idea/
+code/tcp/base/cmake-build-debug/
+code/tcp/01-simple-single-thread/client/cmake-build-debug
+code/tcp/01-simple-single-thread/server/cmake-build-debug
+code/tcp/02-simple-multi-thread/client/cmake-build-debug
+code/tcp/02-simple-multi-thread/server/cmake-build-debug
+code/tcp/03-io-multiplexing-select/server/cmake-build-debug
+/code/tcp/03-io-multiplexing-select/server/.idea/
+/code/tcp/03-io-multiplexing-select/client/.idea/
+/code/tcp/03-io-multiplexing-select/client/cmake-build-debug/
+/code/tcp/04-io-mutiplexing-epoll/client/cmake-build-debug/
+/code/tcp/04-io-mutiplexing-epoll/server/.idea/
+/code/tcp/04-io-mutiplexing-epoll/server/cmake-build-debug/
+/code/tcp/04-io-mutiplexing-epoll/client/.idea/
