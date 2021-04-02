@@ -16,9 +16,14 @@
 const int kSocketError = -1;
 
 /** @fn main
-  * @brief 演示socket的基础调用demo，使用了默认同步I/O阻塞+多线程的方式。
-  * 优点：即对上一个进行了改进，能同时支持多个连接
-  * 缺点：线程启动代价比较大且较占用内存，不过NGINX早期好像是使用了这种方式，实现了高并发，但是现在已经过时，不推荐使用。
+  * @brief 演示socket的基础调用demo，使用了select I/O复用模型，主要包括select、
+  * FD_CLR()、FD_ISSET()、FD_SET()、FD_ZERO()等几个函数。
+  * 优点：
+  *     1. 相比多线程方案，这里所有的处理都在1个线程上，不用考虑线程并发带来的死锁和同步等问题，内存占用更低，开发更简单。
+  *     2. 相比epoll和poll，移植性更好，在windows\mac等平台都支持。
+  * 缺点：
+  *     1. o(n)级别顺序扫描，效率较低；
+  *     2. select最大只支持1024个连接，而poll没有这个限制，但是o(n)级别的扫描，链接数越多，性能则越低。
   *
   * @return
   */
@@ -128,6 +133,8 @@ int main() {
                     continue;
                 }
 
+                // 因为上面通过FD_ISSET()检查了有数据，所以不会阻塞。
+                // 但通常情况下，应该在accept()返回sockfd之后，行设置O_NONBLOCK显示声明为非阻塞I
                 ret = ::recv(sockFd, recvBuffer, sizeof(recvBuffer), 0);
                 if (ret == 0) { // EOF
                     std::cout << "client " << sockFd << " close ths connection, " << inet_ntoa(peer.sin_addr) << ":"
