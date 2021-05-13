@@ -155,10 +155,13 @@ bool setNoBlock(const int &fd) {
 }
 
 /** @fn main
-  * @brief 演示socket的基础调用demo，使用了默认同步I/O阻塞+多线程的方式。
-  * 优点：即对上一个进行了改进，能同时支持多个连接
-  * 缺点：线程启动代价比较大且较占用内存，不过NGINX早期好像是使用了这种方式，实现了高并发，但是现在已经过时，不推荐使用。
-  *
+  * @brief 演示socket的基础调用demo，使用了epoll I/O复用模型。
+  * 优点：
+  *     1. 相比select/poll，改进了扫描算法(o(1))，常量时间复杂度使性能和连接数无关，做到万甚至10万级别的连接。
+  *     2. 相比select，没有最大数量限制。只取决于操作系统最大可打开文件的句柄数(可更改，通过ulimit -a查看)
+  * 缺点：
+  *     1. Linux特有，无法移植
+  *     2. 只适用于连接数很多，但是不怎么活跃的场景。如果每个连接都很活跃（参考视频直播，无时无刻都在传输数据），性能退化，甚至不如poll
   * @return
   */
 int main() {
@@ -239,7 +242,16 @@ int main() {
     struct epoll_event events[maxFiles];
     for (;;) {
         int timeout = 10 * 1000; // actually 200 ms
+
+        // o(1) 时间复杂度，epoll会直接告诉我们那些socket可读可写而不需要我们自己去遍历
+        // 这里会阻塞，超时或者某个socket fd上有可读可写事件时，继续
         fdNum = ::epoll_wait(epFd, events, maxFiles, timeout);
+
+        // 这是select模型的写法，o(n)时间复杂度，需要我们自己遍历，去找那个socket fd上可读
+        //for (auto it = connections.begin(); it != connections.end();) {
+        //    int sockFd = *it;
+        //    if (!FD_ISSET(sockFd, &readFds))
+
         if (fdNum == -1) {
             std::cout << "epoll_wait error:" << errno << std::endl;
             continue;
@@ -248,6 +260,7 @@ int main() {
             continue;
         }
 
+        // fdNum是产生事件的socket fd数量，
         for (int i = 0; i < fdNum; ++i) {
             const epoll_event &e = events[i];
             int fd = e.data.fd;
