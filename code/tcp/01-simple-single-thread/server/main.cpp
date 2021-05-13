@@ -24,7 +24,7 @@ int main() {
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8088);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = INADDR_ANY;
 
     int ret = ::bind(listenFd, (sockaddr *) &addr, sizeof(addr));
     if (ret == kSocketError) {
