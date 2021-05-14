@@ -5,5 +5,5 @@ if(APPLE)
 endif()
 
 # openssl
-link_libraries(crypto ssl)
+link_libraries(crypto ssl pthread)
 add_executable(server ssl_server.cpp)

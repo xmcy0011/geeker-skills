@@ -14,6 +14,8 @@
 #include <iostream>
 #include <chrono>
 
+#include <thread>
+
 /** @fn create_socket
   * @brief 创建一个监听的socket
   * @param [in]listenPort:监听端口
@@ -159,59 +161,31 @@ void configure_context(SSL_CTX *ctx, std::string certPath, std::string privateKe
     }
 }
 
-int main() {
-    int sockFd;
-    SSL_CTX *ctx;
+/** @fn
+  * @brief
+  * @param [in]socketFd: 客户端的socket文件句柄
+  * @param [in]ctx：全局的上下文，保存有证书信息等
+  * @return
+  */
+void onHandleClient(int socketFd, SSL_CTX *ctx) {
+    std::cout << "new connection coming" << std::endl;
 
-    init_openssl();
-    ctx = create_context();
+    SSL *ssl;
+    const char reply[] = "test\n";
 
-    //configure_context(ctx, "../ssl/google.com.pem", "../ssl/google.com.key");
-    configure_context(ctx, "../ssl/zhaogang.com.pem", "../ssl/zhaogang.com.key");
+    // 基于ctx 产生一个新的SSL
+    ssl = SSL_new(ctx);
+    // 将连接用户的socket 加入到SSL
+    SSL_set_fd(ssl, socketFd);
 
-    std::cout << "listen at :4443" << std::endl;
-    sockFd = create_socket(8433);
+    auto t1 = std::chrono::steady_clock::now();
+    // 建立SSL 连接
+    int ret = SSL_accept(ssl);
+    if (ret > 0) {
+        std::cout << "ssl handshake success" << std::endl;
+        // 发消息给客户端
+        //SSL_write(ssl, reply, strlen(reply));
 
-    /* Handle connections */
-    while (true) {
-        struct sockaddr_in addr{};
-        socklen_t len = sizeof(addr);
-        SSL *ssl;
-        const char reply[] = "test\n";
-
-        // 阻塞，直到有新的连接到来
-        int clientFd = accept(sockFd, (struct sockaddr *) &addr, &len);
-        if (clientFd < 0) {
-            perror("Unable to accept\n");
-            break;
-        }
-        std::cout << "new connection coming" << std::endl;
-
-        // 基于ctx 产生一个新的SSL
-        ssl = SSL_new(ctx);
-        // 将连接用户的socket 加入到SSL
-        SSL_set_fd(ssl, clientFd);
-
-        auto t1 = std::chrono::steady_clock::now();
-        // 建立SSL 连接
-        int ret = SSL_accept(ssl);
-        if (ret <= 0) {
-            int code = SSL_get_error(ssl, ret);
-            auto reason = ERR_reason_error_string(code);
-
-            if (code == SSL_ERROR_SYSCALL) {
-                std::cout << "ssl handshake error:errno=" << errno << ",reason:" << strerror(errno) << std::endl;
-            } else {
-                std::cout << "ssl handshake error:code=" << code << ",reason:" << reason << std::endl;
-            }
-
-            ERR_print_errors_fp(stderr);
-            continue;
-        } else {
-            std::cout << "ssl handshake success" << std::endl;
-            // 发消息给客户端
-            //SSL_write(ssl, reply, strlen(reply));
-        }
         auto t2 = std::chrono::steady_clock::now();
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << "SSL_accept cost " << timeSpan.count() * 1000 << " ms." << std::endl;
@@ -228,15 +202,56 @@ int main() {
                 std::cout << "发生其他错误,no=" << errno << ",desc=" << strerror(errno) << std::endl;
             }
         }
+    } else {
+        int code = SSL_get_error(ssl, ret);
+        auto reason = ERR_reason_error_string(code);
 
-        std::cout << "cleanup ssl connection" << std::endl;
-        // 关闭SSL 连接
-        SSL_shutdown(ssl);
-        // 释放SSL
-        SSL_free(ssl);
-        // 关闭socket
-        close(clientFd);
-        // 继续下一个循环，等待下一个连接到来
+        if (code == SSL_ERROR_SYSCALL) {
+            std::cout << "ssl handshake error:errno=" << errno << ",reason:" << strerror(errno) << std::endl;
+        } else {
+            std::cout << "ssl handshake error:code=" << code << ",reason:" << reason << std::endl;
+        }
+
+        ERR_print_errors_fp(stderr);
+    }
+
+    std::cout << "cleanup ssl connection" << std::endl;
+    // 关闭SSL 连接
+    SSL_shutdown(ssl);
+    // 释放SSL
+    SSL_free(ssl);
+    // 关闭socket
+    close(socketFd);
+}
+
+int main() {
+    int sockFd;
+    SSL_CTX *ctx;
+
+    init_openssl();
+    ctx = create_context();
+
+    //configure_context(ctx, "../ssl/google.com.pem", "../ssl/google.com.key");
+    configure_context(ctx, "../ssl/zhaogang.com.pem", "../ssl/zhaogang.com.key");
+
+    std::cout << "listen at :8443" << std::endl;
+    sockFd = create_socket(8433);
+
+    /* Handle connections */
+    while (true) {
+        struct sockaddr_in addr{};
+        socklen_t len = sizeof(addr);
+
+        // 阻塞，直到有新的连接到来
+        int clientFd = accept(sockFd, (struct sockaddr *) &addr, &len);
+        if (clientFd < 0) {
+            perror("Unable to accept\n");
+            break;
+        }
+
+        // 单独起1个线程处理客户端逻辑（错误的用法，这里只是为了演示，实战中需要使用epoll多路复用技术）
+        std::thread task(onHandleClient, clientFd, ctx);
+        task.detach();
     }
 
     // 关闭监听socket文件句柄

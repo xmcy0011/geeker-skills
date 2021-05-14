@@ -15,5 +15,5 @@ link_libraries(crypto ssl)
 add_executable(ssl_client client/ssl_client.cpp)
 
 # openssl
-link_libraries(crypto ssl)
+link_libraries(crypto ssl pthread)
 add_executable(ssl_server server/ssl_server.cpp)
