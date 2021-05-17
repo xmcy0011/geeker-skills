@@ -105,7 +105,8 @@ int main() {
     std::cout << "init openssl success" << std::endl;
 
     // 初始化socket，同步连接远端服务器
-    int socketFd = create_socket("127.0.0.1", 8433);
+    //int socketFd = create_socket("10.0.72.202", 8433);
+    int socketFd = create_socket("10.0.72.202", 8000);
     std::cout << "tcp connect remote success" << std::endl;
 
     // 创建SSL_CTX上下文
@@ -118,6 +119,7 @@ int main() {
     // 建立SSL链接，握手
     std::cout << "SSL_connect 2s later will connect and do hand shake..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::cout << "SSL_connect " << std::endl;
     int ret = SSL_connect(ssl);
     if (ret <= 0) {
         ERR_print_errors_fp(stderr);

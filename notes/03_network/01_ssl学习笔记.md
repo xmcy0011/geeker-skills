@@ -35,4 +35,7 @@ if (ret <= 0) {
 - [IBM社区：Secure programming with the OpenSSL API（客户端）](https://developer.ibm.com/technologies/security/tutorials/l-openssl/)
 - [SSL协议原理详解](http://cshihong.blog.csdn.net/article/details/90112705)
 - [SSL原来介绍+OpenSSL API使用教程](http://blog.csdn.net/u013673367/article/details/23701279)
+- [OpenSSL Libraries](https://www.openssl.org/docs/manmaster/man3/)
+- [websocket协议实现及基于muduo库的功能扩展 https/ws/wss](https://blog.csdn.net/weixin_46572141/article/details/104894760)
+- [websocket-muduo](https://github.com/chengwuloo/websocket)
 
