@@ -20,3 +20,4 @@ code/tcp/03-io-multiplexing-select/server/cmake-build-debug
 /code/tcp/04-io-mutiplexing-epoll/client/.idea/
 /code/tcp/01-simple-single-thread/client/.idea/
 /code/tcp/01-simple-single-thread/server/.idea/
+code/tcp/05-simple-multi-thread-in-ssl/cmake-build-debug
