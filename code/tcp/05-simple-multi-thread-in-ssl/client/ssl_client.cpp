@@ -97,6 +97,42 @@ int create_socket(std::string serverIp, uint16_t serverPort) {
     return sockFd;
 }
 
+/** @fn opensslErrorCheck
+  * @brief opensslErrorCheck
+  * @param [in]ssl: SSL实例
+  * @param [in]retCode: SSL_read/SSL_write返回值
+  * @param [in]isError: 是否确实发生了错误
+  * @return
+  */
+void opensslErrorCheck(SSL *ssl, int retCode, bool &isError) {
+    // 处理ssl的错误码
+    int sslErr = SSL_get_error(ssl, retCode);
+    isError = true;
+
+    switch (sslErr) {
+        case SSL_ERROR_WANT_READ:
+            std::cout << "SSL_ERROR_WANT_READ" << std::endl;
+            isError = false;
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            std::cout << "SSL_ERROR_WANT_WRITE" << std::endl;
+            isError = false;
+            break;
+        case SSL_ERROR_NONE: // 没有错误发生，这种情况好像没怎么遇到过
+            std::cout << "SSL_ERROR_WANT_WRITE" << std::endl;
+            break;
+        case SSL_ERROR_ZERO_RETURN:// == 0 ,代表对端关闭了连接
+            std::cout << "SSL remote close the connection" << std::endl;
+            break;
+        case SSL_ERROR_SSL:
+            std::cout << "SSL error:" << sslErr << std::endl;
+            break;
+        default:
+            std::cout << "SSL unknown error:" << sslErr << std::endl;
+            break;
+    }
+}
+
 int main() {
     SSL_CTX *ctx = nullptr;
 
@@ -106,7 +142,7 @@ int main() {
 
     // 初始化socket，同步连接远端服务器
     //int socketFd = create_socket("10.0.72.202", 8433);
-    int socketFd = create_socket("10.0.72.202", 8000);
+    int socketFd = create_socket("10.80.0.17", 8000);
     std::cout << "tcp connect remote success" << std::endl;
 
     // 创建SSL_CTX上下文
@@ -135,6 +171,20 @@ int main() {
 
     std::string msg = "hello serve";
     SSL_write(ssl, msg.c_str(), msg.length());
+
+    // wait server response
+    char tempBuf[256] = {};
+    ret = SSL_read(ssl, tempBuf, sizeof(tempBuf));
+    if (ret <= 0) {
+        std::cout << "SSL_read return <=0,ret=" << ret << std::endl;
+
+        bool isError = false;
+        opensslErrorCheck(ssl, ret, isError);
+
+        if (isError) {
+            std::cout << "SSL_read error,close" << std::endl;
+        }
+    }
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
     std::cout << "exit ..." << std::endl;

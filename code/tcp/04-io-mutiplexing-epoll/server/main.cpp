@@ -273,9 +273,9 @@ int main() {
                 }
             }
 #ifdef EPOLLRDHUP
-            else if (e.events & EPOLLRDHUP) { // linux 2.6.17 以上
-                onClose(epFd, fd);
-            }
+                else if (e.events & EPOLLRDHUP) { // linux 2.6.17 以上
+                    onClose(epFd, fd);
+                }
 #endif
             else if (e.events & (EPOLLHUP | EPOLLERR | EPOLLPRI)) { // 挂断、错误、收到高优先级数据都需要关闭连接
                 onClose(epFd, fd);
