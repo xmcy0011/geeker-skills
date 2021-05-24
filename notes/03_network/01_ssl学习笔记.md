@@ -697,6 +697,7 @@ std::default_random_engine gen = std::default_random_engine(rd());
 std::uniform_int_distribution<int> dis(5, 10); // c++11 的随机数
 int maxTimes = dis(gen); // 最大次数,5 - 10 次
 int curTimes = 0;
+int ret = -1;
 
 // 这里限制超时时间
 while (curTimes < maxTimes) { // 100 - 200 ms超时
@@ -713,6 +714,7 @@ while (curTimes < maxTimes) { // 100 - 200 ms超时
         t.tv_sec = 0;
         t.tv_usec = 100 * 1000; // 100 ms
         select(sockfd + 1, &fds, nullptr, nullptr, &t);
+        curTimes++;
         break;
       }
       default:
