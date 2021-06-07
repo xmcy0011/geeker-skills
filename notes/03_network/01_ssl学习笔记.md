@@ -734,6 +734,12 @@ if (ret <= 0) {
 
 ### SSL_shutdown崩溃Broken pipe
 
+#### 问题
+
+写了个性能测试工具，每 `20毫秒启动一个协程` ，进行TCP连接和SSL握手，然后关闭。
+
+服务端运行过程中，程序有时在SSL_shutdown处崩溃，如果降低客户端连接频率（比如1秒），该问题不出现。
+
 ```c++
 static inline void SSL_free_(SSL *&ssl) {
     if (ssl) {
@@ -744,15 +750,19 @@ static inline void SSL_free_(SSL *&ssl) {
 }
 ```
 
-程序执行到SSL_shutdown后产生Broken pipe信号，如果不捕获，则导致进程Crash。
+#### 解决方式
 
-根据：[socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977) 是因为对一个对端已经关闭的socket调用两次write，第二次将会生成SIGPIPE信号, 该信号默认结束进程，需要设置SIG_IGN信号处理函数以避免进程退出：
+根据：[socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977) ，是因为对一个对端已经关闭的socket调用两次write，第二次将会生成SIGPIPE信号，该信号默认结束进程。
+
+解决方法是：捕获SIG_IGN信号，以避免进程退出
 
 ```c++
 signal(SIGPIPE, SIG_IGN);
 ```
 
 这样， 第二次调用write方法时，会返回-1，同时errno置为SIGPIPE，程序便能知道对端已经关闭。
+
+#### 原理
 
 引用[socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977)：
 
