@@ -292,6 +292,9 @@ int main() {
     int sockFd;
     SSL_CTX *ctx;
 
+    // 捕获SIG_IGN信号，解决Broken pipe导致进程崩溃问题
+    signal(SIGPIPE, SIG_IGN);
+
     init_openssl();
     ctx = create_context();
 
