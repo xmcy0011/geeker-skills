@@ -732,6 +732,34 @@ if (ret <= 0) {
 }
 ```
 
+### SSL_shutdown崩溃Broken pipe
+
+```c++
+static inline void SSL_free_(SSL *&ssl) {
+    if (ssl) {
+      ::SSL_shutdown(ssl);  // crash
+      ::SSL_free(ssl);
+      ssl = nullptr;
+    }
+}
+```
+
+程序执行到SSL_shutdown后产生Broken pipe信号，如果不捕获，则导致进程Crash。
+
+根据：[socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977) 是因为对一个对端已经关闭的socket调用两次write，第二次将会生成SIGPIPE信号, 该信号默认结束进程，需要设置SIG_IGN信号处理函数以避免进程退出：
+
+```c++
+signal(SIGPIPE, SIG_IGN);
+```
+
+这样， 第二次调用write方法时，会返回-1，同时errno置为SIGPIPE，程序便能知道对端已经关闭。
+
+引用[socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977)：
+
+>  具体的分析可以结合TCP的"四次握手"，TCP是全双工的信道，可以看作两条单工信道，TCP连接两端的两个端点各负责一条。当对端调用close时，虽然本意是关闭整个两条信道，但本端只是收到FIN包。按照TCP协议的语义，表示对端只是关闭了其所负责的那一条单工信道，仍然可以继续接收数据。也就是说，因为TCP协议的限制，一个端点无法获知对端的socket是调用了close还是shutdown。
+
+> 对一个已经收到FIN包的socket调用read方法，如果接收缓冲已空，则返回0，这就是常说的表示连接关闭。 但第一次对其调用write方法时，如果发送缓冲没问题，会返回正确写入(发送)。但发送的报文会导致对端发送RST报文，因为对端的socket已经调用了close，完全关闭，既不发送，也不接收数据。所以，第二次调用write方法(假设在收到RST之后)，会生成SIGPIPE信号，导致进程退出。
+
 
 
 # 参考
@@ -743,4 +771,5 @@ if (ret <= 0) {
 - [OpenSSL Libraries](https://www.openssl.org/docs/manmaster/man3/)
 - [websocket协议实现及基于muduo库的功能扩展 https/ws/wss](https://blog.csdn.net/weixin_46572141/article/details/104894760)
 - [websocket-muduo](https://github.com/chengwuloo/websocket)
+- [socket编程—— 服务器遇到Broken Pipe崩溃](https://blog.csdn.net/sky101010ws/article/details/51509977)
 
