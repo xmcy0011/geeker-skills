@@ -21,3 +21,6 @@ code/tcp/03-io-multiplexing-select/server/cmake-build-debug
 /code/tcp/01-simple-single-thread/client/.idea/
 /code/tcp/01-simple-single-thread/server/.idea/
 code/tcp/05-simple-multi-thread-in-ssl/cmake-build-debug
+code/algorithms/string/01_trie_tree/cmake-build-debug
+code/algorithms/string/02_dfa_sensitivewd_filter/cmake-build-debug
+code/oop/01-share-ptr-oop/cmake-build-debug
