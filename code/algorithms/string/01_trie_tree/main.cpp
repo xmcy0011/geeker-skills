@@ -76,7 +76,7 @@ void test_time_by_find(std::vector<std::string> &words, std::string &origin_word
     std::cout << "cost : " << dr_ms << " ms" << std::endl << std::endl;
 }
 
-int main() {
+void testStopWords() {
     Trie t;
     t.insert("vx");
     t.insert("微信");
@@ -91,11 +91,8 @@ int main() {
     }
 
     std::cout << t.replaceSensitive(origin) << std::endl;
-
-    return 0;
 }
 
-#if 0
 int main() {
     // trie: small
     Trie trie2;
@@ -142,7 +139,9 @@ int main() {
 
     // thread safe
     test_concurrent(trie2, origin);
+
+    // stop words
+    std::cout << "test stop words" << std::endl;
+    testStopWords();
     return 0;
 }
-
-#endif
