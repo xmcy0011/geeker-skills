@@ -12,102 +12,137 @@
 #include <vector>
 #include <algorithm>
 #include <locale>
+#include <fstream>
 
-void test_time(Trie &t) {
+double get_time_diff(std::chrono::steady_clock::time_point t1) {
+    // run code
+    auto t2 = std::chrono::steady_clock::now();
+    // 毫秒级
+    double dr_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    return dr_ms;
+}
+
+void test_time(Trie &t, std::string &origin_word) {
     auto t1 = std::chrono::steady_clock::now();
-    auto r = t.getSensitive("SHit，你你你你是傻逼啊你，说你呢，你个大笨蛋。");
+    std::cout << origin_word << std::endl;
+
+    auto r = t.getSensitive(origin_word);
 
     for (auto &&i : r) {
         std::cout << "[index=" << i.startIndex << ",len=" << i.len
-                  << ",word=" << i.word.c_str() << "],";
+                  << ",word=" << i.word.c_str() << "]," << std::endl;
     }
-    std::cout << std::endl;
-
-    auto word = t.replaceSensitive("SHit，你你你你是傻逼啊你，说你呢，你个大笨蛋。");
-    std::cout << word << std::endl;
 
     // run code
     auto t2 = std::chrono::steady_clock::now();
     // 毫秒级
     double dr_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
-    std::cout << "耗时（毫秒）: " << dr_ms << std::endl;
+    std::cout << "cost: " << dr_ms << " ms" << std::endl;
+
+    std::cout << t.replaceSensitive(origin_word) << std::endl << std::endl;
 }
 
 // thread safe
-void test_concurrent(Trie &t) {
+void test_concurrent(Trie &t, std::string &origin_word) {
     for (int i = 0; i < 20; i++) {
-        //std::thread thd([&]() { func(t); });
-        //thd.join();
+        std::thread thd([&]() {
+            std::cout << "thread: " << t.replaceSensitive(origin_word) << std::endl;
+        });
+        thd.join();
     }
 
     std::this_thread::sleep_for(std::chrono::microseconds(3000));
 }
 
-void test_time_by_find() {
-    std::string origin = "SHit，你你你你是傻逼啊你，说你呢，你个大笨蛋。";
-    std::vector<std::string> words;
-    words.push_back("你是傻逼");
-    words.push_back("你是傻逼啊");
-    words.push_back("你是坏蛋");
-    words.push_back("你个大笨蛋");
-    words.push_back("我去年买了个表");
-    words.push_back("shit");
+void test_time_by_find(std::vector<std::string> &words, std::string &origin_word) {
+    std::cout << "find by std::string::find()" << std::endl;
+    // 转换成小写
+    transform(origin_word.begin(), origin_word.end(), origin_word.begin(), ::tolower);
 
     // 开始计时
     auto t1 = std::chrono::steady_clock::now();
-
-    // 转换成小写
-    transform(origin.begin(), origin.end(), origin.begin(), ::tolower);
-
     for (auto &&i : words) {
-        size_t n = origin.find(i);
+        size_t n = origin_word.find(i);
         if (n != std::string::npos) {
             std::cout << "[index=" << n << ",len=" << i.length() << ",word=" << i
-                      << "],";
+                      << "]," << std::endl;
         }
     }
-    std::cout << std::endl;
 
     // run code
     auto t2 = std::chrono::steady_clock::now();
     //毫秒级
     double dr_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
-    std::cout << "耗时（毫秒）: " << dr_ms << std::endl;
+    std::cout << "cost : " << dr_ms << " ms" << std::endl << std::endl;
 }
 
 int main() {
     Trie t;
-    // t.insert("apple");
-    // printf("%d \n", t.search("apple"));   // 返回 true
-    // printf("%d \n", t.search("app"));     // 返回 false
-    // printf("%d \n", t.startsWith("app")); // 返回 true
-    // t.insert("app");
-    // printf("%d \n", t.search("app"));     // 返回 true
-    // printf("%d \n", t.search("this is apple")); // 返回 false，为什么？
+    t.insert("vx");
+    t.insert("微信");
+    t.loadStopWord("stopwd.txt");
 
-    // t.insert("微信");
-    // t.insert("vx");
-    // std::cout << t.search("你好，请加微信183023102312") << std::endl;
+    std::string origin = "请加微-信，v x 号为 12305234";
+    auto r = t.getSensitive(origin);
 
-    t.insert("你是傻逼");
-    t.insert("你是傻逼啊");
-    t.insert("你是坏蛋");
-    t.insert("你个大笨蛋");
-    t.insert("我去年买了个表");
-    t.insert("shit");
+    for (auto &&i : r) {
+        std::cout << "[index=" << i.startIndex << ",len=" << i.len
+                  << ",word=" << i.word.c_str() << "]," << std::endl;
+    }
 
-    test_time(t);
-    test_time_by_find();
-    // test_concurrent(t);
-
-    // 测试汉字的字节数
-    // std::string str = "你好啊";
-    // std::wstring test = std::to_wstring(str);
-
-    // for (int i = 0; i < test.length(); i++) {
-    //   std::cout << test[i] << std::endl;
-    // }
-
+    std::cout << t.replaceSensitive(origin) << std::endl;
 
     return 0;
 }
+
+#if 0
+int main() {
+    // trie: small
+    Trie trie2;
+    trie2.insert("你是傻逼");
+    trie2.insert("你是傻逼啊");
+    trie2.insert("你是坏蛋");
+    trie2.insert("你个大笨蛋");
+    trie2.insert("我去年买了个表");
+    trie2.insert("qq"); // 都会转换为小写
+    trie2.insert("vx");
+    std::string origin = "SHit，QQ,VX 你你你你是傻逼啊你，说你呢，你个大笨蛋。";
+
+    test_time(trie2, origin);
+
+    // KMP: small
+    std::vector<std::string> words;
+    words.emplace_back("你是傻逼");
+    words.emplace_back("你是傻逼啊");
+    words.emplace_back("你是坏蛋");
+    words.emplace_back("你个大笨蛋");
+    words.emplace_back("我去年买了个表");
+    words.emplace_back("shit");
+    test_time_by_find(words, origin);
+
+    // trie: large from file
+    Trie t;
+    t.loadFromFile("word.txt");
+
+    origin = "你个傻逼，小姐姐还不赶紧加VX，微信，扣扣是Qq3306 4343，你奶奶的。。。赶快加";
+
+    auto t1 = std::chrono::steady_clock::now();
+    std::cout << "origin: " << origin << std::endl
+              << "filter: " << t.replaceSensitive(origin) << std::endl
+              << "cost: " << get_time_diff(t1) << " ms" << std::endl << std::endl;
+
+    // KMP: large from file
+    std::ifstream ifs("word.txt", std::ios_base::in);
+    std::string str;
+    words.clear(); // clear
+    while (getline(ifs, str)) {
+        words.emplace_back(str);
+    }
+    test_time_by_find(words, origin);
+
+    // thread safe
+    test_concurrent(trie2, origin);
+    return 0;
+}
+
+#endif
