@@ -112,6 +112,7 @@ int Trie::getSensitiveLength(std::string word, int startIndex) {
         const char &cur = word[p3];
         auto subNode = p1->getSubNode(cur);
         if (subNode == nullptr) {
+            // 如果是停顿词，直接往下继续查找
             if (stop_words_.find(cur) != stop_words_.end()) {
                 ++wordLen;
                 continue;
@@ -146,17 +147,33 @@ int Trie::getSensitiveLength(std::string word, int startIndex) {
 std::string chinese_or_english_append(const std::string &str) {
     std::string replacement;
     //char chinese[4] = {0};
+    int chinese_len = 0;
     for (int i = 0; i < str.length(); i++) {
-        int ret = str[i] & 0x80;
-        if (ret != 0) {   // chinese: the top is 1
+        unsigned char chr = str[i];
+        int ret = chr & 0x80;
+        if (ret != 0) { // chinese: the top is 1
+            if (chr >= 0x80) {
+                if (chr >= 0xFC && chr <= 0xFD) {
+                    chinese_len = 6;
+                } else if (chr >= 0xF8) {
+                    chinese_len = 5;
+                } else if (chr >= 0xF0) {
+                    chinese_len = 4;
+                } else if (chr >= 0xE0) {
+                    chinese_len = 3;
+                } else if (chr >= 0xC0) {
+                    chinese_len = 2;
+                } else {
+                    throw std::exception();
+                }
+            }
+            // 跳过
+            i += chinese_len - 1;
+
             //chinese[0] = str[i];
             //chinese[1] = str[i + 1];
             //chinese[2] = str[i + 2];
-            i++;    //skip one more
-            i++;
-            //printf("chinese:%s\n", chinese);
-        } else {
-            //printf("ascii:%hhd\n", str[i]);
+        } else /** ascii **/ {
         }
         replacement.append("*");
     }
