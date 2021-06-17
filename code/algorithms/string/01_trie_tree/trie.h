@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "sbc_convert.h"
+
 /** @class trie
   * @brief trie树算法实现的敏感词过滤
   */
@@ -24,18 +26,18 @@ public:
     ~TrieNode();
 
     // 添加子节点
-    void addSubNode(const char &c, TrieNode *subNode) { subNodes_[c] = subNode; }
+    void addSubNode(const wchar_t &c, TrieNode *subNode) { subNodes_[c] = subNode; }
 
     // 获取子节点
-    TrieNode *getSubNode(const char &c) { return subNodes_[c]; }
+    TrieNode *getSubNode(const wchar_t &c) { return subNodes_[c]; }
 
 private:
     // 子节点(key是下级字符，value是下级节点)
-    std::unordered_map<char, TrieNode *> subNodes_;
+    std::unordered_map<wchar_t, TrieNode *> subNodes_;
 };
 
 struct SensitiveWord {
-    std::string word;
+    std::wstring word;
     int startIndex;
     int len;
 
@@ -85,39 +87,45 @@ public:
       * @param [in]word: utf8 word
       * @return void
       */
-    void insert(const std::string &word);
+    void insert(const std::wstring &word);
 
     /** @fn search
       * @brief Returns if the word is in the trie
       * @param [in]word: utf8 word
       * @return bool result
       */
-    bool search(std::string word);
+    bool search(const std::wstring &word);
 
     /** @fn startsWith
       * @brief Returns if there is any word in the trie that starts with the given prefix
       * @param [in]prefix: prefix
       * @return bool result
       */
-    bool startsWith(std::string &prefix);
+    bool startsWith(const std::wstring &prefix);
 
     /** @fn getSensitive
       * @brief 过滤敏感词并返回敏感词命中位置和信息
       * @param [in]word: 原始字符串，utf8格式，支持中文
       * @return 命中敏感词信息
       */
-    std::set<SensitiveWord> getSensitive(std::string word);
+    std::set<SensitiveWord> getSensitive(const std::wstring &word);
 
     /** @fn replaceSensitive
       * @brief 替换敏感词为*
       * @param [in]word: 字符串内容
       * @return 替换后的文本
       */
-    std::string replaceSensitive(const std::string &word);
+    std::wstring replaceSensitive(const std::wstring &word);
 
 private:
-    int getSensitiveLength(std::string text, int startIndex);
+    int getSensitiveLength(std::wstring text, int startIndex);
 
     TrieNode *root_;
-    std::unordered_set<char> stop_words_;
+    std::unordered_set<wchar_t> stop_words_;
 };
+
+//#define UNIT_TEST
+
+#ifdef UNIT_TEST
+int testTrie();
+#endif

@@ -13,7 +13,7 @@
 #include <iostream>
 #include <fstream>
 
-const char kEndFlag = '&';
+const wchar_t kEndFlag = L'ﾰ'; // unicode: FFB0
 
 TrieNode::TrieNode() = default;
 
@@ -32,9 +32,9 @@ Trie::~Trie() {
     root_ = nullptr;
 }
 
-void Trie::insert(const std::string &word) {
+void Trie::insert(const std::wstring &word) {
     TrieNode *curNode = root_;
-    for (char code : word) {
+    for (wchar_t code : word) {
         TrieNode *subNode = curNode->getSubNode(code);
 
         // 如果没有这个节点则新建
@@ -49,7 +49,7 @@ void Trie::insert(const std::string &word) {
     curNode->addSubNode(kEndFlag, new TrieNode());
 }
 
-bool Trie::search(std::string word) {
+bool Trie::search(const std::wstring &word) {
     // TrieNode *curNode = root_;
     // for (int i = 0; i < word.length(); i++) {
     //   curNode = curNode->getSubNode(word[i]);
@@ -59,10 +59,11 @@ bool Trie::search(std::string word) {
     // return curNode->getSubNode(kEndFlag) != nullptr;
 
     // 转换成小写
-    transform(word.begin(), word.end(), word.begin(), ::tolower);
+    std::wstring lower = word;
+    transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     bool is_contain = false;
-    for (int p2 = 0; p2 < word.length(); ++p2) {
-        int wordLen = getSensitiveLength(word, p2);
+    for (int p2 = 0; p2 < lower.length(); ++p2) {
+        int wordLen = getSensitiveLength(lower, p2);
         if (wordLen > 0) {
             is_contain = true;
             break;
@@ -71,9 +72,9 @@ bool Trie::search(std::string word) {
     return is_contain;
 }
 
-bool Trie::startsWith(std::string &prefix) {
+bool Trie::startsWith(const std::wstring &prefix) {
     TrieNode *curNode = root_;
-    for (char &i : prefix) {
+    for (wchar_t i : prefix) {
         curNode = curNode->getSubNode(i);
         if (curNode == nullptr)
             return false;
@@ -81,15 +82,17 @@ bool Trie::startsWith(std::string &prefix) {
     return true;
 }
 
-std::set<SensitiveWord> Trie::getSensitive(std::string word) {
+std::set<SensitiveWord> Trie::getSensitive(const std::wstring &word) {
+    std::wstring lower = word;
+
     // 转换成小写
-    transform(word.begin(), word.end(), word.begin(), ::tolower);
+    transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     std::set<SensitiveWord> sensitiveSet;
 
-    for (int p2 = 0; p2 < word.length(); ++p2) {
-        int wordLen = getSensitiveLength(word, p2);
+    for (int p2 = 0; p2 < lower.length(); ++p2) {
+        int wordLen = getSensitiveLength(lower, p2);
         if (wordLen > 0) {
-            std::string sensitiveWord = word.substr(p2, wordLen);
+            std::wstring sensitiveWord = lower.substr(p2, wordLen);
             SensitiveWord wordObj;
             wordObj.word = sensitiveWord;
             wordObj.startIndex = p2;
@@ -103,13 +106,13 @@ std::set<SensitiveWord> Trie::getSensitive(std::string word) {
     return sensitiveSet;
 }
 
-int Trie::getSensitiveLength(std::string word, int startIndex) {
+int Trie::getSensitiveLength(std::wstring word, int startIndex) {
     TrieNode *p1 = root_;
     int wordLen = 0;
     bool endFlag = false;
 
     for (int p3 = startIndex; p3 < word.length(); ++p3) {
-        const char &cur = word[p3];
+        const wchar_t &cur = word[p3];
         auto subNode = p1->getSubNode(cur);
         if (subNode == nullptr) {
             // 如果是停顿词，直接往下继续查找
@@ -138,6 +141,7 @@ int Trie::getSensitiveLength(std::string word, int startIndex) {
     return wordLen;
 }
 
+#if 0
 /** @fn
   * @brief linux下一个中文占用三个字节,windows占两个字节
   * 参考：https://blog.csdn.net/taiyang1987912/article/details/49736349
@@ -179,26 +183,16 @@ std::string chinese_or_english_append(const std::string &str) {
     }
     return replacement;
 }
+#endif
 
-std::string Trie::replaceSensitive(const std::string &word) {
+std::wstring Trie::replaceSensitive(const std::wstring &word) {
     std::set<SensitiveWord> words = getSensitive(word);
-    std::string ret;
-    int last_index = 0;
+    std::wstring ret = word;
     for (auto &item : words) {
-        std::string substr = word.substr(item.startIndex, item.len);
-        std::string replacement = chinese_or_english_append(substr);
-
-        // 原始内容
-        ret.append(word.substr(last_index, item.startIndex - last_index));
-
-        // 替换内容
-        ret.append(replacement);
-        last_index = item.startIndex + item.len;
+        for (int i = item.startIndex; i < (item.startIndex + item.len); ++i) {
+            ret[i] = L'*';
+        }
     }
-
-    // append reset
-    ret.append(word.substr(last_index, word.length() - last_index));
-
     return ret;
 }
 
@@ -208,8 +202,10 @@ void Trie::loadFromFile(const std::string &file_name) {
     int count = 0;
     while (getline(ifs, str)) {
         // 转换成小写
-        transform(str.begin(), str.end(), str.begin(), ::tolower);
-        insert(str);
+        std::wstring utf8_str = SBCConvert::s2ws(str);
+
+        transform(utf8_str.begin(), utf8_str.end(), utf8_str.begin(), ::tolower);
+        insert(utf8_str);
         count++;
     }
     std::cout << "load " << count << " words" << std::endl;
@@ -220,11 +216,12 @@ void Trie::loadStopWord(const std::string &file_name) {
     std::string str;
     int count = 0;
     while (getline(ifs, str)) {
-        if (str.length() == 1) {
-            stop_words_.insert(str[0]);
+        std::wstring utf8_str = SBCConvert::s2ws(str);
+        if (utf8_str.length() == 1) {
+            stop_words_.insert(utf8_str[0]);
             count++;
-        } else if (str.empty()) {
-            stop_words_.insert(' ');
+        } else if (utf8_str.empty()) {
+            stop_words_.insert(L' ');
             count++;
         }
     }
@@ -232,80 +229,83 @@ void Trie::loadStopWord(const std::string &file_name) {
 }
 
 #ifdef UNIT_TEST
+
+#include <thread>
+
 // performance
 void test_time(Trie &t) {
-  auto t1 = std::chrono::steady_clock::now();
+    auto t1 = std::chrono::steady_clock::now();
 
-  std::cout << "你好，加一下微信18301231231:";
-  for (auto &&i : t.getSensitive("你好，加一下微信VX18301231231")) {
-    std::cout << i.word;
-  }
-  std::cout << std::endl;
+    std::cout << "你好，加一下微信18301231231:";
+    for (auto &&i : t.getSensitive(L"你好，加一下微信VX18301231231")) {
+        std::cout << SBCConvert::ws2s(i.word);
+    }
+    std::cout << std::endl;
 
-  // run code
-  auto t2 = std::chrono::steady_clock::now();
-  //毫秒级
-  double dr_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
-  std::cout << "耗时: " << dr_ms << std::endl;
+    // run code
+    auto t2 = std::chrono::steady_clock::now();
+    //毫秒级
+    double dr_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    std::cout << "耗时: " << dr_ms << std::endl;
 }
 
 void func(Trie &t) {
-  std::cout << "敏感词为：";
-  std::string origin = "你你你你是傻逼啊你，说你呢，你个大笨蛋。";
-  char dest[128] = {0};
-  origin.copy(dest, origin.length(), 0);
+    std::cout << "敏感词为：";
+    std::wstring origin = L"你你你你是傻逼啊你，说你呢，你个大笨蛋。";
+    wchar_t dest[128] = {0};
+    origin.copy(dest, origin.length(), 0);
 
-  for (auto &&i : t.getSensitive(origin)) {
-    std::cout << "[index=" << i.startIndex << ",len=" << i.len
-              << ",word=" << i.word << "],";
+    for (auto &&i : t.getSensitive(origin)) {
+        std::cout << "[index=" << i.startIndex << ",len=" << i.len
+                  << ",word=" << SBCConvert::ws2s(i.word) << "],";
 
-    // PS：对于中文敏感词，因为一般汉字占3个字节（也有4个字节），所以这里“*”是正常的3倍。
-    // 项目里需要是判断是包含，而不是替换。
-    // 所以，如果有这种需求，建议改成wstring和wchat_t来实现
-    for (int j = i.startIndex; j < (i.startIndex + i.len); ++j) {
-      dest[j] = '*';
+        // PS：对于中文敏感词，因为一般汉字占3个字节（也有4个字节），所以这里“*”是正常的3倍。
+        // 项目里需要是判断是包含，而不是替换。
+        // 所以，如果有这种需求，建议改成wstring和wchat_t来实现
+        for (int j = i.startIndex; j < (i.startIndex + i.len); ++j) {
+            dest[j] = '*';
+        }
     }
-  }
 
-  std::cout << "  替换后：" << dest << std::endl;
-  std::cout << std::endl;
+    std::cout << "  替换后：" << dest << std::endl;
+    std::cout << std::endl;
 }
 
 // thread safe
 void test_concurrent(Trie &t) {
-  for (int i = 0; i < 20; i++) {
-    std::thread thd([&]() { func(t); });
-    thd.join();
-  }
+    for (int i = 0; i < 20; i++) {
+        std::thread thd([&]() { func(t); });
+        thd.join();
+    }
 
-  std::this_thread::sleep_for(std::chrono::microseconds(3000));
+    std::this_thread::sleep_for(std::chrono::microseconds(3000));
 }
 
 int testTrie() {
     Trie t;
-    t.insert("apple");
-    assert(t.search("apple"));            // 返回 true
-    assert(t.search("app") == false);     // 返回 false
-    assert(t.startsWith("app"));          // 返回 true
-    t.insert("app");
+    t.insert(L"apple");
+    assert(t.search(L"apple"));            // 返回 true
+    assert(t.search(L"app") == false);     // 返回 false
+    assert(t.startsWith(L"app"));          // 返回 true
+    t.insert(L"app");
 
-    assert(t.search("app"));            // 返回 true
-    assert(t.search("this is apple"));  // 返回 true
+    assert(t.search(L"app"));            // 返回 true
+    assert(t.search(L"this is apple"));  // 返回 true
 
-    t.insert("微信");
-    t.insert("vx");
-    std::string origin = "你好，请加微信183023102312";
-    assert(t.replaceSensitive(origin) == "你好，请加**183023102312");
+    t.insert(L"微信");
+    t.insert(L"vx");
+    std::wstring origin = L"你好，请加微信183023102312";
+    assert(t.replaceSensitive(origin) == L"你好，请加**183023102312");
 
-    t.insert("你是傻逼");
-    t.insert("你是傻逼啊");
-    t.insert("你是坏蛋");
-    t.insert("你个大笨蛋");
-    t.insert("我去年买了个表");
-    t.insert("shit");
+    t.insert(L"你是傻逼");
+    t.insert(L"你是傻逼啊");
+    t.insert(L"你是坏蛋");
+    t.insert(L"你个大笨蛋");
+    t.insert(L"我去年买了个表");
+    t.insert(L"shit");
 
-    origin = "SHit，你你你你是傻逼啊你，说你呢，你个大笨蛋。";
-    assert(t.replaceSensitive(origin) == "****，你你你****啊你，说你呢，*****。");
+    origin = L"SHit，你你你你是傻逼啊你，说你呢，你个大笨蛋。";
+    assert(t.replaceSensitive(origin) == L"****，你你你****啊你，说你呢，*****。");
 
     test_time(t);
     test_concurrent(t);
@@ -318,6 +318,7 @@ int testTrie() {
     //   std::cout << test[i] << std::endl;
     // }
 
-  return 0;
+    return 0;
 }
+
 #endif // UNIT_TEST
