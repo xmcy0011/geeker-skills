@@ -5,6 +5,8 @@
   * wildfirechat: https://github.com/wildfirechat/server/blob/wildfirechat/broker/src/main/java/win/liyufan/im/SensitiveFilter.java
   * trie: https://github.com/r-lyeh-archived/trie/blob/master/trie.hpp
   *
+  * Thinks [sensitivewd-filter](https://github.com/andyzty/sensitivewd-filter)
+  *
   * @author teng.qing
   * @date 2021/6/10
   */
@@ -35,35 +37,26 @@ Trie::~Trie() {
 void Trie::insert(const std::wstring &word) {
     TrieNode *curNode = root_;
     for (wchar_t code : word) {
-        TrieNode *subNode = curNode->getSubNode(code);
+        int unicode = SBCConvert::charConvert(code);
+        TrieNode *subNode = curNode->getSubNode(unicode);
 
         // 如果没有这个节点则新建
         if (subNode == nullptr) {
             subNode = new TrieNode();
-            curNode->addSubNode(code, subNode);
+            curNode->addSubNode(unicode, subNode);
         }
         // 指向子节点，进入下一循环
         curNode = subNode;
     }
     // 设置结束标识
-    curNode->addSubNode(kEndFlag, new TrieNode());
+    int unicode = SBCConvert::charConvert(kEndFlag);
+    curNode->addSubNode(unicode, new TrieNode());
 }
 
 bool Trie::search(const std::wstring &word) {
-    // TrieNode *curNode = root_;
-    // for (int i = 0; i < word.length(); i++) {
-    //   curNode = curNode->getSubNode(word[i]);
-    //   if (curNode == nullptr)
-    //     return false;
-    // }
-    // return curNode->getSubNode(kEndFlag) != nullptr;
-
-    // 转换成小写
-    std::wstring lower = word;
-    transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     bool is_contain = false;
-    for (int p2 = 0; p2 < lower.length(); ++p2) {
-        int wordLen = getSensitiveLength(lower, p2);
+    for (int p2 = 0; p2 < word.length(); ++p2) {
+        int wordLen = getSensitiveLength(word, p2);
         if (wordLen > 0) {
             is_contain = true;
             break;
@@ -74,8 +67,9 @@ bool Trie::search(const std::wstring &word) {
 
 bool Trie::startsWith(const std::wstring &prefix) {
     TrieNode *curNode = root_;
-    for (wchar_t i : prefix) {
-        curNode = curNode->getSubNode(i);
+    for (wchar_t item : prefix) {
+        int unicode = SBCConvert::charConvert(item);
+        curNode = curNode->getSubNode(unicode);
         if (curNode == nullptr)
             return false;
     }
@@ -83,16 +77,12 @@ bool Trie::startsWith(const std::wstring &prefix) {
 }
 
 std::set<SensitiveWord> Trie::getSensitive(const std::wstring &word) {
-    std::wstring lower = word;
-
-    // 转换成小写
-    transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     std::set<SensitiveWord> sensitiveSet;
 
-    for (int p2 = 0; p2 < lower.length(); ++p2) {
-        int wordLen = getSensitiveLength(lower, p2);
+    for (int p2 = 0; p2 < word.length(); ++p2) {
+        int wordLen = getSensitiveLength(word, p2);
         if (wordLen > 0) {
-            std::wstring sensitiveWord = lower.substr(p2, wordLen);
+            std::wstring sensitiveWord = word.substr(p2, wordLen);
             SensitiveWord wordObj;
             wordObj.word = sensitiveWord;
             wordObj.startIndex = p2;
@@ -112,11 +102,11 @@ int Trie::getSensitiveLength(std::wstring word, int startIndex) {
     bool endFlag = false;
 
     for (int p3 = startIndex; p3 < word.length(); ++p3) {
-        const wchar_t &cur = word[p3];
-        auto subNode = p1->getSubNode(cur);
+        int unicode = SBCConvert::charConvert(word[p3]);
+        auto subNode = p1->getSubNode(unicode);
         if (subNode == nullptr) {
             // 如果是停顿词，直接往下继续查找
-            if (stop_words_.find(cur) != stop_words_.end()) {
+            if (stop_words_.find(unicode) != stop_words_.end()) {
                 ++wordLen;
                 continue;
             }
@@ -125,7 +115,7 @@ int Trie::getSensitiveLength(std::wstring word, int startIndex) {
         } else {
             ++wordLen;
             // 直到找到尾巴的位置，才认为完整包含敏感词
-            if (subNode->getSubNode(kEndFlag)) {
+            if (subNode->getSubNode(SBCConvert::charConvert(kEndFlag))) {
                 endFlag = true;
                 break;
             } else {

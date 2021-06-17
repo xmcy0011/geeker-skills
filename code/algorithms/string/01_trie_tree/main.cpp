@@ -93,6 +93,7 @@ void testStopWords() {
 
     std::cout << SBCConvert::ws2s(t.replaceSensitive(origin)) << std::endl;
 }
+
 #if 1
 
 int main() {
@@ -109,6 +110,7 @@ int main() {
             // 简体中文
             "微信",
             "微——信",   // 全角符号
+            "微【】、。？《》信", // 全角重复词
             "微。信",
             "VX",
             "vx", // 小写

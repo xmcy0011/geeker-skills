@@ -1,10 +1,5 @@
 /** @file trie.h
   * @brief trie树算法实现的敏感词过滤
-  *
-  * Trie 树原理及其敏感词过滤的实现: https://www.jianshu.com/p/9919244dd7ad
-  * wildfirechat: https://github.com/wildfirechat/server/blob/wildfirechat/broker/src/main/java/win/liyufan/im/SensitiveFilter.java
-  * trie: https://github.com/r-lyeh-archived/trie/blob/master/trie.hpp
-  *
   * @author teng.qing
   * @date 2021/6/10
   */
@@ -26,14 +21,13 @@ public:
     ~TrieNode();
 
     // 添加子节点
-    void addSubNode(const wchar_t &c, TrieNode *subNode) { subNodes_[c] = subNode; }
+    void addSubNode(uint16_t c, TrieNode *subNode) { subNodes_[c] = subNode; }
 
     // 获取子节点
-    TrieNode *getSubNode(const wchar_t &c) { return subNodes_[c]; }
+    TrieNode *getSubNode(uint16_t c) { return subNodes_[c]; }
 
 private:
-    // 子节点(key是下级字符，value是下级节点)
-    std::unordered_map<wchar_t, TrieNode *> subNodes_;
+    std::unordered_map<uint16_t /*unicode*/, TrieNode *> subNodes_;
 };
 
 struct SensitiveWord {
@@ -121,7 +115,7 @@ private:
     int getSensitiveLength(std::wstring text, int startIndex);
 
     TrieNode *root_;
-    std::unordered_set<wchar_t> stop_words_;
+    std::unordered_set<uint16_t /*unicode*/ > stop_words_;
 };
 
 //#define UNIT_TEST
