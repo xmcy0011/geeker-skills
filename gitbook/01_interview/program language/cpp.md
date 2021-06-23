@@ -1,5 +1,7 @@
 # C++
+
 ## 类
+
 1. 构造函数有哪几种？无参、有参、拷贝、赋值、移动
 2. 什么情况下必须得实现构造函数，否则编译器报错？[C++必须要存在非默认构造函数的条件](https://blog.csdn.net/yueyansheng2/article/details/44459313)
 3. 在什么情况下必须实现拷贝构造函数？[什么时候需要定义拷贝构造函数](https://blog.csdn.net/suxinpingtao51/article/details/36890809)
@@ -10,9 +12,10 @@
 8. 三种继承的区别？默认继承是什么
 
 ## 类型转换
+
 1. explicit 构造函数禁止隐式转换
 2. constexpr 构造函数必须初始化所有成员
-2. [C++11]static_cast、dynamic_cast、const_cast、
+2. [C++11]static_cast、dynamic_cast、const_cast、reinterpret_cast
 
 ## 多线程
 
@@ -38,10 +41,7 @@
 ### Vector
 
 1. vector的下标和at的区别，size和capacity的区别
-
 2. vector的push_back和emplace_back的区别 [https://blog.csdn.net/p942005405/article/details/84764104]
-
-   
 
 ### 红黑树
 

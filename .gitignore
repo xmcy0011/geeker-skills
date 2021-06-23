@@ -24,3 +24,5 @@ code/tcp/05-simple-multi-thread-in-ssl/cmake-build-debug
 code/algorithms/string/01_trie_tree/cmake-build-debug
 code/algorithms/string/02_dfa_sensitivewd_filter/cmake-build-debug
 code/oop/01-share-ptr-oop/cmake-build-debug
+gitbook/01_interview/_book
+gitbook/01_interview/node_modules
